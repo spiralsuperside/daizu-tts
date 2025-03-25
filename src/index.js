@@ -141,10 +141,10 @@ module.exports = class App{
 
   async auto_connect_from_file() {
     try {
-      const data = JSON.parse(fs.readFileSync('./autojoin.json'));
-      const guild = await client.guilds.fetch(data.guild_id);
-      const voiceChannel = await guild.channels.fetch(data.voice_channel_id);
-      const textChannel = await guild.channels.fetch(data.text_channel_id);
+      const data = JSON.parse(fs.readFileSync('./config.json'));
+      const guild = await client.guilds.fetch(data.GUILD_ID);
+      const voiceChannel = await guild.channels.fetch(data.VOICE_CHANNEL_ID);
+      const textChannel = await guild.channels.fetch(data.TEXT_CHANNEL_ID);
 
       if (!voiceChannel || !textChannel) {
         logger.info("Auto-connect failed: Channels not found.");
