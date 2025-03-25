@@ -103,3 +103,67 @@ done
 ```
 
 Save it as `voicevox-watchdog.sh` and run it using `screen`, `tmux`, or a background process.
+
+
+
+
+
+# 💡 Keeping `daizu-tts` Running with systemd
+
+To ensure the `daizu-tts` bot stays running even after crashes, disconnects, or server restarts, you can use **systemd** to manage and supervise the process.
+
+This guide helps you set up `systemd` to run `npm run production` reliably.
+
+---
+
+## 🛠️ 1. Create a systemd Service File
+
+Run:
+
+```bash
+sudo nano /etc/systemd/system/daizu-tts.service
+```
+
+Paste the following (modify paths if needed):
+
+```ini
+[Unit]
+Description=Daizu TTS Discord Bot
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/daizu-tts
+ExecStart=/usr/bin/npm run production
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+
+```
+
+Reload and start the service:
+
+```bash
+sudo systemctl daemon-reexec        # optional but good after updates
+sudo systemctl daemon-reload        # reload systemd configs
+sudo systemctl enable daizu-tts     # start on system boot
+sudo systemctl start daizu-tts      # start it now
+```
+### 🔍 3. Check Logs
+
+To monitor the bot’s logs live:
+
+```bash
+journalctl -u daizu-tts.service -f
+```
+
+Or check startup logs with:
+
+```bash
+journalctl -u daizu-tts.service --since "10 minutes ago"
+```
+
