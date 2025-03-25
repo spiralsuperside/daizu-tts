@@ -1,5 +1,5 @@
 {
-  "VOICEVOX_ENGINE": "http://127.0.0.1:2970/",
+  "VOICEVOX_ENGINE": "http://127.0.0.1:2970/", 
   "TMP_DIR": "/tmp",
   "TOKEN": "YOUR_DISCORD_TOKEN",
   "PREFIX": ";",
@@ -12,4 +12,7 @@
   "DICT_DIR": "./dictionaries",
   "EXTEND_PASS": "notoiro",
   "TMP_PREFIX": "_main"
+  "GUILD_ID": "",
+  "VOICE_CHANNEL_ID": "",
+  "TEXT_CHANNEL_ID": ""
 }
