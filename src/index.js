@@ -139,6 +139,27 @@ module.exports = class App{
     }
   }
 
+  async auto_connect_from_file() {
+    try {
+      const data = JSON.parse(fs.readFileSync('./autojoin.json'));
+      const guild = await client.guilds.fetch(data.guild_id);
+      const voiceChannel = await guild.channels.fetch(data.voice_channel_id);
+      const textChannel = await guild.channels.fetch(data.text_channel_id);
+
+      if (!voiceChannel || !textChannel) {
+        logger.info("Auto-connect failed: Channels not found.");
+        return;
+      }
+
+      logger.info(`Auto-connecting to VC: ${voiceChannel.name}, Text: ${textChannel.name}`);
+      await this.connect_vc_simple(guild, voiceChannel, textChannel);
+
+    } catch (error) {
+      logger.info("Auto-connect error: " + error);
+    }
+  }
+
+	
   setup_discord(){
     // コマンド取得
     const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
@@ -197,6 +218,8 @@ module.exports = class App{
       print_info(this);
 
       this.update_status_text();
+
+      await this.auto_connect_from_file(); 
     });
 
     client.on('interactionCreate', this.onInteraction.bind(this));
@@ -517,6 +540,52 @@ module.exports = class App{
   }
 
 
+  async connect_vc_simple(guild, voice_channel, text_channel) {
+    try {
+        const guild_id = guild.id;
+
+        let serverFile = bot_utils.get_server_file(guild_id);
+
+        const voice_channel_id = voice_channel.id;
+        const text_channel_id = text_channel.id;
+
+        const connectinfo = {
+            text: text_channel_id,
+            voice: voice_channel_id,
+            audio_player: null,
+            queue: [],
+            filename: `${guild_id}${TMP_PREFIX}.wav`,
+            opus_filename: `${guild_id}${TMP_PREFIX}.ogg`,
+            is_play: false,
+            system_mute_counter: 0,
+            user_voices: serverFile?.user_voices ?? {
+                DEFAULT: { voice: 1, speed: 100, pitch: 100, intonation: 100, volume: 100 }
+            },
+            dict: serverFile?.dict ?? [["Discord", "でぃすこーど", 2]],
+        };
+
+        const connection = joinVoiceChannel({
+            guildId: guild_id,
+            channelId: voice_channel_id,
+            adapterCreator: guild.voiceAdapterCreator,
+            selfMute: false,
+            selfDeaf: true,
+        });
+
+        const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
+        connectinfo.audio_player = player;
+        connection.subscribe(player);
+         
+	global.connections_map.set(guild_id, connectinfo);           
+	this.update_status_text();
+	//this.add_system_message("接続しました！（自動）", guild_id);
+    } catch (err) {
+	logger.info("connect_vc_simple error: " + err);
+    }
+  }                                                                                                                                                                                                                                                                                                                       
+
+
+	
 // BAD IMPLEMENTATION
 // いまではinteractionとVOICESTATEを共有することになっております！
 // NEED IMPROVEMENT
