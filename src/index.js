@@ -657,23 +657,58 @@ module.exports = class App{
       selfMute: false, selfDeaf: true,
     });
 
-    connection.on(VoiceConnectionStatus.Disconnected, async(_, __)=>{
-      try{
+
+
+    // REPLACED OLDER VERSION WITH MORE ROBUST RECONNECTING UPON DISCONNECT
+    connection.on(VoiceConnectionStatus.Disconnected, async (_, __) => {
+        try {
+        // Attempt quick reconnect
         await Promise.race([
-          entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
-          entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+            entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+            entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
         ]);
-      }catch(e){
-        try{
-          // すでに接続が破棄されてる場合がある
-          connection.destroy();
-        }catch(e){
-          logger.log(e);
+        logger.info("Voice reconnected successfully.");
+        } catch (error) {
+        logger.warn("Voice connection lost. Attempting full reconnect...");
+        try {
+            connection.destroy(); // Clean up existing connection
+        } catch (e) {
+            logger.warn("Error during voice connection destroy:", e);
         }
 
-        logger.debug(`system disconnected`);
-      }
+        // Reconnect using saved config (voice/text channel)
+        const guild = client.guilds.cache.get(guild_id);
+        const voice_channel = guild.channels.cache.get(connectinfo.voice);
+        const text_channel = guild.channels.cache.get(connectinfo.text);
+
+        if (guild && voice_channel && text_channel) {
+            await this.connect_vc_simple(guild, voice_channel, text_channel);
+            this.add_system_message("再接続しました！（自動）", guild_id);
+        } else {
+            logger.error("Failed to auto-reconnect: missing channel/guild info.");
+        }
+        }
     });
+
+
+	  
+    // connection.on(VoiceConnectionStatus.Disconnected, async(_, __)=>{
+    //   try{
+    //     await Promise.race([
+    //       entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+    //       entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+    //     ]);
+    //   }catch(e){
+    //     try{
+    //       // すでに接続が破棄されてる場合がある
+    //       connection.destroy();
+    //     }catch(e){
+    //       logger.log(e);
+    //     }
+
+    //     logger.debug(`system disconnected`);
+    //   }
+    // });
 
     const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
     connectinfo.audio_player = player;
